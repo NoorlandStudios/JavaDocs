@@ -40,7 +40,7 @@ jobs:
       - name: Copy Javadocs - NoorNPCs
         run: |
           mkdir -p docs/NoorNPCs
-          cp -r NoorNPCs/target/site/apidocs/* docs/NoorNPCs/
+          cp -r NoorNPCs/target/reports/apidocs/* docs/NoorNPCs/
 
       # -------------------------------
       # NoorItems
@@ -60,7 +60,7 @@ jobs:
       - name: Copy Javadocs - NoorItems
         run: |
           mkdir -p docs/NoorItems
-          cp -r NoorItems/target/site/apidocs/* docs/NoorItems/
+          cp -r NoorItems/target/reports/apidocs/* docs/NoorItems/
 
       # -------------------------------
       # NoorEntities
@@ -80,7 +80,7 @@ jobs:
       - name: Copy Javadocs - NoorEntities
         run: |
           mkdir -p docs/NoorEntities
-          cp -r NoorEntities/target/site/apidocs/* docs/NoorEntities/
+          cp -r NoorEntities/target/reports/apidocs/* docs/NoorEntities/
 
       # -------------------------------
       # Commit and Push
