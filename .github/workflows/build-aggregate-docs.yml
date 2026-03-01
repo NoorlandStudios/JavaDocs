@@ -1,0 +1,94 @@
+name: Build Aggregated Javadocs
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * *"  # optional: nightly build
+
+permissions:
+  contents: write
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout central docs repo
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # -------------------------------
+      # NoorNPCs
+      # -------------------------------
+      - name: Checkout NoorNPCs
+        uses: actions/checkout@v4
+        with:
+          repository: NoorlandStudios/NoorNPCs
+          path: NoorNPCs
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Build Javadocs - NoorNPCs
+        run: |
+          cd NoorNPCs
+          mvn -B clean javadoc:javadoc
+
+      - name: Copy Javadocs - NoorNPCs
+        run: |
+          mkdir -p docs/NoorNPCs
+          cp -r NoorNPCs/target/site/apidocs/* docs/NoorNPCs/
+
+      # -------------------------------
+      # NoorItems
+      # -------------------------------
+      - name: Checkout NoorItems
+        uses: actions/checkout@v4
+        with:
+          repository: NoorlandStudios/NoorItems
+          path: NoorItems
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Build Javadocs - NoorItems
+        run: |
+          cd NoorItems
+          mvn -B clean javadoc:javadoc
+
+      - name: Copy Javadocs - NoorItems
+        run: |
+          mkdir -p docs/NoorItems
+          cp -r NoorItems/target/site/apidocs/* docs/NoorItems/
+
+      # -------------------------------
+      # NoorEntities
+      # -------------------------------
+      - name: Checkout NoorEntities
+        uses: actions/checkout@v4
+        with:
+          repository: NoorlandStudios/NoorEntities
+          path: NoorEntities
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Build Javadocs - NoorEntities
+        run: |
+          cd NoorEntities
+          mvn -B clean javadoc:javadoc
+
+      - name: Copy Javadocs - NoorEntities
+        run: |
+          mkdir -p docs/NoorEntities
+          cp -r NoorEntities/target/site/apidocs/* docs/NoorEntities/
+
+      # -------------------------------
+      # Commit and Push
+      # -------------------------------
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add docs
+          git commit -m "Update aggregated Javadocs" || echo "No changes to commit"
+          git push
