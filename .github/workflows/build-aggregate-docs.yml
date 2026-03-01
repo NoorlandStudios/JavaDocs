@@ -1,36 +1,23 @@
 name: Build Aggregated Javadocs
-
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 3 * * *"  # nightly build
-
+    - cron: "0 3 * * *"
 permissions:
   contents: write
-
 jobs:
   build-docs:
     runs-on: ubuntu-latest
-
     steps:
-      # -------------------------------
-      # Checkout central repo
-      # -------------------------------
       - name: Checkout central docs repo
         uses: actions/checkout@v4
 
-      # -------------------------------
-      # Set up JDK 21
-      # -------------------------------
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
 
-      # -------------------------------
-      # Checkout all projects
-      # -------------------------------
       - name: Checkout NoorNPCs
         uses: actions/checkout@v4
         with:
@@ -52,69 +39,39 @@ jobs:
           path: NoorEntities
           token: ${{ secrets.PAT_TOKEN }}
 
-      # -------------------------------
-      # Install NoorItems to local repo (dependencies)
-      # -------------------------------
-      - name: Install NoorItems
-        run: |
-          cd NoorItems
-          mvn clean install
+      - name: Install NoorItems to local Maven repo
+        run: mvn -f NoorItems/pom.xml clean install -DskipTests
 
-      # -------------------------------
-      # Create temporary aggregator POM
-      # -------------------------------
-      - name: Create aggregator POM
+      - name: Collect source files and build classpath
         run: |
-          mkdir -p aggregated
-          cat <<EOF > aggregated/pom.xml
-          <project xmlns="http://maven.apache.org/POM/4.0.0"
-                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
-                   http://maven.apache.org/xsd/maven-4.0.0.xsd">
-            <modelVersion>4.0.0</modelVersion>
-            <groupId>com.noorlandmc</groupId>
-            <artifactId>aggregated-javadoc</artifactId>
-            <version>1.0</version>
-            <packaging>pom</packaging>
-            <build>
-              <plugins>
-                <plugin>
-                  <groupId>org.apache.maven.plugins</groupId>
-                  <artifactId>maven-javadoc-plugin</artifactId>
-                  <version>3.5.0</version>
-                  <configuration>
-                    <doctitle>Noorland Aggregated Javadocs</doctitle>
-                  </configuration>
-                </plugin>
-              </plugins>
-            </build>
-          </project>
-          EOF
+          # Gather all .java source files across the three projects
+          find NoorNPCs/src/main/java NoorItems/src/main/java NoorEntities/src/main/java \
+            -name "*.java" > sources.txt
 
-      # -------------------------------
-      # Build aggregated Javadocs
-      # -------------------------------
-      - name: Build aggregated Javadoc
-        run: |
-          mvn -f aggregated/pom.xml javadoc:javadoc \
-            -DadditionalSourceDirs="NoorNPCs/src/main/java,NoorItems/src/main/java,NoorEntities/src/main/java" \
-            -DdestDir=aggregated/target/apidocs
+          echo "Found $(wc -l < sources.txt) source files"
 
-      # -------------------------------
-      # Copy generated docs
-      # -------------------------------
-      - name: Copy aggregated Javadocs
+          # Build a classpath from all local Maven jars so javadoc can resolve types
+          CLASSPATH=$(mvn -f NoorItems/pom.xml dependency:build-classpath \
+            -Dmdep.outputFile=/dev/stdout -q 2>/dev/null)
+          echo "JAVADOC_CP=$CLASSPATH" >> $GITHUB_ENV
+
+      - name: Generate aggregated Javadocs
         run: |
           mkdir -p docs
-          cp -r aggregated/target/apidocs/* docs/
+          javadoc \
+            -d docs \
+            -sourcepath "NoorNPCs/src/main/java:NoorItems/src/main/java:NoorEntities/src/main/java" \
+            -subpackages . \
+            -classpath "$JAVADOC_CP" \
+            -windowtitle "Noorland Aggregated Javadocs" \
+            -doctitle "Noorland Aggregated Javadocs" \
+            -Xdoclint:none \
+            2>&1 | tail -20
 
-      # -------------------------------
-      # Commit and push
-      # -------------------------------
       - name: Commit and push changes
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add docs
-          git commit -m "Update aggregated Javadocs" || echo "No changes to commit"
+          git commit -m "Update aggregated Javadocs [skip ci]" || echo "No changes to commit"
           git push
