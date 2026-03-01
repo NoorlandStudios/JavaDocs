@@ -52,17 +52,17 @@ jobs:
           path: NoorItems
           token: ${{ secrets.PAT_TOKEN }}
 
-      - name: Build Javadocs - NoorItems
-        run: |
-          cd NoorItems
-          mvn -B clean javadoc:javadoc
-      
       - name: Install NoorItems to Maven Local Repository
         run: |
           cd NoorItems
           mvn clean package
           mvn install:install-file -Dfile=target/NoorItems-1.0.0.jar -DgroupId=com.noorlandmc -DartifactId=NoorItems -Dversion=1.0 -Dpackaging=jar
 
+      - name: Build Javadocs - NoorItems
+        run: |
+          cd NoorItems
+          mvn -B clean javadoc:javadoc
+      
       - name: Copy Javadocs - NoorItems
         run: |
           mkdir -p docs/NoorItems
