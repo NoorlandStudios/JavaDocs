@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"com.noorlandmc.NoorNPCs"},{"l":"com.noorlandmc.NoorNPCs.commands"},{"l":"com.noorlandmc.NoorNPCs.listeners"},{"l":"com.noorlandmc.NoorNPCs.menus"},{"l":"com.noorlandmc.NoorNPCs.model"},{"l":"com.noorlandmc.NoorNPCs.service"},{"l":"com.noorlandmc.NoorNPCs.util"}];updateSearchResults();
