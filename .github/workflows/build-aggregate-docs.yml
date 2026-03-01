@@ -56,6 +56,11 @@ jobs:
         run: |
           cd NoorItems
           mvn -B clean javadoc:javadoc
+      
+      - name: Install NoorItems to Maven Local Repository
+        run: |
+          mvn clean package
+          mvn install:install-file -Dfile=NoorItems/target/NoorItems-1.0-SNAPSHOT.jar -DgroupId=com.noorlandmc -DartifactId=NoorItems -Dversion=1.0 -Dpackaging=jar
 
       - name: Copy Javadocs - NoorItems
         run: |
@@ -72,6 +77,11 @@ jobs:
           path: NoorEntities
           token: ${{ secrets.PAT_TOKEN }}
 
+      - name: Build Javadocs - NoorEntities
+        run: |
+          cd NoorEntities
+          mvn -B clean javadoc:javadoc
+      
       - name: Build Javadocs - NoorEntities
         run: |
           cd NoorEntities
