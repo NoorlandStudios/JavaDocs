@@ -57,48 +57,38 @@ jobs:
       # -------------------------------
       # Prepare Aggregation
       # -------------------------------
-      - name: Create aggregated Javadoc project
+      - name: Create aggregated Javadoc POM
         run: |
-          mkdir -p aggregated/src
-          mkdir -p aggregated/pom
-          # Copy all source code
-          cp -r NoorNPCs/src/main/java aggregated/src/noornpcs
-          cp -r NoorItems/src/main/java aggregated/src/nooritems
-          cp -r NoorEntities/src/main/java aggregated/src/noorentities
-
-          # Create minimal Maven POM for aggregation
+          mkdir -p aggregated
           cat <<EOF > aggregated/pom.xml
-          <project xmlns="http://maven.apache.org/POM/4.0.0" 
-                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
-                   http://maven.apache.org/xsd/maven-4.0.0.xsd">
+          <project xmlns="http://maven.apache.org/POM/4.0.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                  http://maven.apache.org/xsd/maven-4.0.0.xsd">
             <modelVersion>4.0.0</modelVersion>
             <groupId>com.noorlandmc</groupId>
             <artifactId>aggregated-javadoc</artifactId>
             <version>1.0</version>
             <packaging>pom</packaging>
+
             <build>
               <plugins>
                 <plugin>
                   <groupId>org.apache.maven.plugins</groupId>
                   <artifactId>maven-javadoc-plugin</artifactId>
                   <version>3.5.0</version>
-                  <executions>
-                    <execution>
-                      <id>aggregate</id>
-                      <goals>
-                        <goal>aggregate</goal>
-                      </goals>
-                    </execution>
-                  </executions>
+                  <configuration>
+                    <sourcepath>
+                      ${PWD}/NoorNPCs/src/main/java
+                      ${PWD}/NoorItems/src/main/java
+                      ${PWD}/NoorEntities/src/main/java
+                    </sourcepath>
+                    <doctitle>Noorland Aggregated Javadocs</doctitle>
+                    <aggregate>true</aggregate>
+                  </configuration>
                 </plugin>
               </plugins>
             </build>
-            <modules>
-              <module>src/noornpcs</module>
-              <module>src/nooritems</module>
-              <module>src/noorentities</module>
-            </modules>
           </project>
           EOF
 
