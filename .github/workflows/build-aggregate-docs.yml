@@ -59,8 +59,9 @@ jobs:
       
       - name: Install NoorItems to Maven Local Repository
         run: |
+          cd NoorItems
           mvn clean package
-          mvn install:install-file -Dfile=NoorItems/target/NoorItems-1.0-SNAPSHOT.jar -DgroupId=com.noorlandmc -DartifactId=NoorItems -Dversion=1.0 -Dpackaging=jar
+          mvn install:install-file -Dfile=target/NoorItems-1.0-SNAPSHOT.jar -DgroupId=com.noorlandmc -DartifactId=NoorItems -Dversion=1.0 -Dpackaging=jar
 
       - name: Copy Javadocs - NoorItems
         run: |
