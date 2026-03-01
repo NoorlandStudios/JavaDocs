@@ -3,7 +3,7 @@ name: Build Aggregated Javadocs
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 3 * * *"  # optional: nightly build
+    - cron: "0 3 * * *"  # nightly build
 
 permissions:
   contents: write
@@ -23,7 +23,7 @@ jobs:
           java-version: 21
 
       # -------------------------------
-      # NoorNPCs
+      # Checkout all projects
       # -------------------------------
       - name: Checkout NoorNPCs
         uses: actions/checkout@v4
@@ -32,19 +32,6 @@ jobs:
           path: NoorNPCs
           token: ${{ secrets.PAT_TOKEN }}
 
-      - name: Build Javadocs - NoorNPCs
-        run: |
-          cd NoorNPCs
-          mvn -B clean javadoc:javadoc
-
-      - name: Copy Javadocs - NoorNPCs
-        run: |
-          mkdir -p docs/NoorNPCs
-          cp -r NoorNPCs/target/reports/apidocs/* docs/NoorNPCs/
-
-      # -------------------------------
-      # NoorItems
-      # -------------------------------
       - name: Checkout NoorItems
         uses: actions/checkout@v4
         with:
@@ -52,25 +39,6 @@ jobs:
           path: NoorItems
           token: ${{ secrets.PAT_TOKEN }}
 
-      - name: Install NoorItems to Maven Local Repository
-        run: |
-          cd NoorItems
-          mvn clean package
-          mvn install:install-file -Dfile=target/NoorItems-1.0.0.jar -DgroupId=com.noorlandmc -DartifactId=NoorItems -Dversion=1.0 -Dpackaging=jar
-
-      - name: Build Javadocs - NoorItems
-        run: |
-          cd NoorItems
-          mvn -B clean javadoc:javadoc
-      
-      - name: Copy Javadocs - NoorItems
-        run: |
-          mkdir -p docs/NoorItems
-          cp -r NoorItems/target/reports/apidocs/* docs/NoorItems/
-
-      # -------------------------------
-      # NoorEntities
-      # -------------------------------
       - name: Checkout NoorEntities
         uses: actions/checkout@v4
         with:
@@ -78,20 +46,77 @@ jobs:
           path: NoorEntities
           token: ${{ secrets.PAT_TOKEN }}
 
-      - name: Build Javadocs - NoorEntities
+      # -------------------------------
+      # Install dependencies locally
+      # -------------------------------
+      - name: Install NoorItems to local repo
         run: |
-          cd NoorEntities
-          mvn -B clean javadoc:javadoc
-      
-      - name: Build Javadocs - NoorEntities
-        run: |
-          cd NoorEntities
-          mvn -B clean javadoc:javadoc
+          cd NoorItems
+          mvn clean install
 
-      - name: Copy Javadocs - NoorEntities
+      # -------------------------------
+      # Prepare Aggregation
+      # -------------------------------
+      - name: Create aggregated Javadoc project
         run: |
-          mkdir -p docs/NoorEntities
-          cp -r NoorEntities/target/reports/apidocs/* docs/NoorEntities/
+          mkdir -p aggregated/src
+          mkdir -p aggregated/pom
+          # Copy all source code
+          cp -r NoorNPCs/src/main/java aggregated/src/noornpcs
+          cp -r NoorItems/src/main/java aggregated/src/nooritems
+          cp -r NoorEntities/src/main/java aggregated/src/noorentities
+
+          # Create minimal Maven POM for aggregation
+          cat <<EOF > aggregated/pom.xml
+          <project xmlns="http://maven.apache.org/POM/4.0.0" 
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+                   http://maven.apache.org/xsd/maven-4.0.0.xsd">
+            <modelVersion>4.0.0</modelVersion>
+            <groupId>com.noorlandmc</groupId>
+            <artifactId>aggregated-javadoc</artifactId>
+            <version>1.0</version>
+            <packaging>pom</packaging>
+            <build>
+              <plugins>
+                <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-javadoc-plugin</artifactId>
+                  <version>3.5.0</version>
+                  <executions>
+                    <execution>
+                      <id>aggregate</id>
+                      <goals>
+                        <goal>aggregate</goal>
+                      </goals>
+                    </execution>
+                  </executions>
+                </plugin>
+              </plugins>
+            </build>
+            <modules>
+              <module>src/noornpcs</module>
+              <module>src/nooritems</module>
+              <module>src/noorentities</module>
+            </modules>
+          </project>
+          EOF
+
+      # -------------------------------
+      # Build Aggregated Javadoc
+      # -------------------------------
+      - name: Build aggregated Javadoc
+        run: |
+          cd aggregated
+          mvn clean javadoc:aggregate
+
+      # -------------------------------
+      # Copy aggregated docs to central repo
+      # -------------------------------
+      - name: Copy aggregated Javadocs
+        run: |
+          mkdir -p docs
+          cp -r aggregated/target/site/apidocs/* docs/
 
       # -------------------------------
       # Commit and Push
