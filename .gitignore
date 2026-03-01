@@ -1,8 +1,0 @@
-target/
-*.jar
-.idea/
-*.iml
-.github/
-*.log
-logs/
-config.yml
