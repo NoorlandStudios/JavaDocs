@@ -106,7 +106,7 @@ jobs:
       - name: Copy aggregated Javadocs
         run: |
           mkdir -p docs
-          cp -r aggregated/target/site/apidocs/* docs/
+          cp -r aggregated/target/reports/apidocs/* docs/
 
       # -------------------------------
       # Commit and Push
