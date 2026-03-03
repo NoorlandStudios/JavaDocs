@@ -55,6 +55,23 @@ jobs:
             -Dmdep.outputFile=/dev/stdout -q 2>/dev/null)
           echo "JAVADOC_CP=$CLASSPATH" >> $GITHUB_ENV
 
+      - name: Create Temporary Parent POM
+        run: |
+          cat <<EOF > pom.xml
+          <project xmlns="http://maven.apache.org/POM/4.0.0">
+            <modelVersion>4.0.0</modelVersion>
+            <groupId>com.noorland</groupId>
+            <artifactId>docs-aggregator</artifactId>
+            <version>1.0</version>
+            <packaging>pom</packaging>
+            <modules>
+              <module>NoorNPCs</module>
+              <module>NoorItems</module>
+              <module>NoorEntities</module>
+            </modules>
+          </project>
+          EOF
+        
       - name: Generate aggregated Javadocs
         run: |
           mkdir -p docs
