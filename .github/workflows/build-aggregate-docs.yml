@@ -41,9 +41,17 @@ jobs:
 
       - name: Install all projects to local Maven repo
         run: |
-          mvn -f NoorItems/pom.xml clean install -DskipTests -q
-          mvn -f NoorEntities/pom.xml clean install -DskipTests -q
-          mvn -f NoorNPCs/pom.xml clean install -DskipTests -q
+          # 1. Build NoorItems first (with -e to see errors if it fails)
+          echo "Building NoorItems..."
+          mvn -f NoorItems/pom.xml clean install -DskipTests -e
+          
+          # 2. Build NoorEntities (which depends on NoorItems)
+          echo "Building NoorEntities..."
+          mvn -f NoorEntities/pom.xml clean install -DskipTests -e
+          
+          # 3. Build NoorNPCs
+          echo "Building NoorNPCs..."
+          mvn -f NoorNPCs/pom.xml clean install -DskipTests -e
 
       - name: Collect source files and build classpath
         run: |
