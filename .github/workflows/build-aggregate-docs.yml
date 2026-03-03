@@ -110,23 +110,6 @@ jobs:
             -quiet \
             @sources.txt
 
-      - name: Verify Docs Exist
-        run: ls -R docs | grep index.html
-
-      - name: Verify and Move
-        run: |
-          # If Maven ignored the custom path, find where it actually went
-          REAL_PATH=$(find . -name "index.html" | grep "apidocs" | head -n 1 | xargs dirname)
-          
-          if [ -z "$REAL_PATH" ]; then
-            echo "Error: No Javadocs were generated!"
-            exit 1
-          fi
-          
-          echo "Found Javadocs at $REAL_PATH"
-          mkdir -p final_docs
-          cp -r "$REAL_PATH"/* final_docs/
-
       - name: Commit and push changes
         run: |
           git config user.name "github-actions"
