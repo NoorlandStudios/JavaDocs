@@ -72,27 +72,42 @@ jobs:
           </project>
           EOF
         
-      - name: Generate aggregated Javadocs
+      - name: Generate Aggregated Javadocs
         run: |
           mkdir -p docs
-          # Combine classpaths from all three projects
+          
+          echo "Building combined classpath..."
+          # Collect dependencies from all three projects into one string
           CP1=$(mvn -f NoorItems/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
           CP2=$(mvn -f NoorNPCs/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
           CP3=$(mvn -f NoorEntities/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
           
+          # Join them with colons
           FULL_CP="$CP1:$CP2:$CP3"
-
-          # Run javadoc with enough memory (-J-Xmx2g) and no hanging tail
+          
+          echo "Locating source files..."
+          # Find all Java files, excluding tests
+          find NoorNPCs/src/main/java NoorItems/src/main/java NoorEntities/src/main/java -name "*.java" > sources.txt
+          
+          echo "Generating Javadocs for $(wc -l < sources.txt) files..."
+          
+          # The Secret Sauce: 
+          # 1. -J-Xmx2g: Gives the tool 2GB of RAM (GitHub Runners have 7GB total)
+          # 2. @sources.txt: Passes the file list directly to avoid command line length limits
+          # 3. Removal of 'tail': We want to see the error if it crashes!
           javadoc \
             -J-Xmx2g \
             -d docs \
-            -sourcepath "NoorNPCs/src/main/java:NoorItems/src/main/java:NoorEntities/src/main/java" \
-            -subpackages . \
+            -encoding UTF-8 \
+            -docencoding UTF-8 \
+            -charset UTF-8 \
             -classpath "$FULL_CP" \
             -windowtitle "Noorland Aggregated Javadocs" \
             -doctitle "Noorland Aggregated Javadocs" \
             -Xdoclint:none \
-            -quiet
+            -notimestamp \
+            -link https://docs.oracle.com/en/java/javase/21/docs/api/ \
+            @sources.txt
 
       - name: Verify and Move
         run: |
