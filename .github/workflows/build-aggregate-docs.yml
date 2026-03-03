@@ -39,8 +39,11 @@ jobs:
           path: NoorEntities
           token: ${{ secrets.PAT_TOKEN }}
 
-      - name: Install NoorItems to local Maven repo
-        run: mvn -f NoorItems/pom.xml clean install -DskipTests
+      - name: Install all projects to local Maven repo
+        run: |
+          mvn -f NoorItems/pom.xml clean install -DskipTests -q
+          mvn -f NoorEntities/pom.xml clean install -DskipTests -q
+          mvn -f NoorNPCs/pom.xml clean install -DskipTests -q
 
       - name: Collect source files and build classpath
         run: |
@@ -77,37 +80,30 @@ jobs:
           mkdir -p docs
           
           echo "Building combined classpath..."
-          # Collect dependencies from all three projects into one string
-          CP1=$(mvn -f NoorItems/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
-          CP2=$(mvn -f NoorNPCs/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
-          CP3=$(mvn -f NoorEntities/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
+          # Now that they are installed, build-classpath should succeed
+          CP_ITEMS=$(mvn -f NoorItems/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
+          CP_NPCS=$(mvn -f NoorNPCs/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
+          CP_ENTS=$(mvn -f NoorEntities/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
           
-          # Join them with colons
-          FULL_CP="$CP1:$CP2:$CP3"
+          FULL_CP="$CP_ITEMS:$CP_NPCS:$CP_ENTS"
           
           echo "Locating source files..."
-          # Find all Java files, excluding tests
           find NoorNPCs/src/main/java NoorItems/src/main/java NoorEntities/src/main/java -name "*.java" > sources.txt
           
-          echo "Generating Javadocs for $(wc -l < sources.txt) files..."
-          
-          # The Secret Sauce: 
-          # 1. -J-Xmx2g: Gives the tool 2GB of RAM (GitHub Runners have 7GB total)
-          # 2. @sources.txt: Passes the file list directly to avoid command line length limits
-          # 3. Removal of 'tail': We want to see the error if it crashes!
+          echo "Generating Javadocs..."
           javadoc \
             -J-Xmx2g \
             -d docs \
             -encoding UTF-8 \
-            -docencoding UTF-8 \
-            -charset UTF-8 \
             -classpath "$FULL_CP" \
             -windowtitle "Noorland Aggregated Javadocs" \
             -doctitle "Noorland Aggregated Javadocs" \
             -Xdoclint:none \
-            -notimestamp \
-            -link https://docs.oracle.com/en/java/javase/21/docs/api/ \
+            -quiet \
             @sources.txt
+
+      - name: Verify Docs Exist
+        run: ls -R docs | grep index.html
 
       - name: Verify and Move
         run: |
