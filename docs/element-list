@@ -4,6 +4,10 @@ com.noorlandmc.NoorEntities.entity
 com.noorlandmc.NoorEntities.entity.Hostile
 com.noorlandmc.NoorItems
 com.noorlandmc.NoorItems.enchantment
+com.noorlandmc.NoorItems.enchantment.armor
+com.noorlandmc.NoorItems.enchantment.tools
+com.noorlandmc.NoorItems.enchantment.weapon
+com.noorlandmc.NoorItems.item
 com.noorlandmc.NoorItems.item.emerald
 com.noorlandmc.NoorItems.item.fantasy
 com.noorlandmc.NoorItems.item.obsidian
