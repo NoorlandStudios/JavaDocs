@@ -57,12 +57,13 @@ jobs:
 
       - name: Generate aggregated Javadocs
         run: |
-          # 1. Run the aggregate goal with explicit output directory
+          # We use -Ddoclint=none to tell the Javadoc plugin to ignore syntax errors
+          # We use -Dquiet=true to keep the logs clean
           mvn javadoc:aggregate \
-            -DreportOutputDirectory="${{ github.workspace }}/docs" \
-            -DdestDir="apidocs" \
-            -Xdoclint:none \
-            -Dquiet=true
+            -Ddoclint=none \
+            -Dquiet=true \
+            -DreportOutputDirectory="${{ github.workspace }}" \
+            -DdestDir="docs"
 
       - name: Verify and Move
         run: |
