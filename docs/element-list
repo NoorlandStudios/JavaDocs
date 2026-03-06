@@ -1,3 +1,13 @@
+com.noorlandmc.noorcore
+com.noorlandmc.noorcore.Jobs
+com.noorlandmc.noorcore.Kits
+com.noorlandmc.noorcore.MainMenu
+com.noorlandmc.noorcore.Menu
+com.noorlandmc.noorcore.PotionEffects
+com.noorlandmc.noorcore.Quests
+com.noorlandmc.noorcore.Ranks
+com.noorlandmc.noorcore.RTP
+com.noorlandmc.noorcore.Vote
 com.noorlandmc.NoorEntities
 com.noorlandmc.NoorEntities.ai
 com.noorlandmc.NoorEntities.entity
@@ -13,6 +23,7 @@ com.noorlandmc.NoorItems.item.fantasy
 com.noorlandmc.NoorItems.item.obsidian
 com.noorlandmc.NoorItems.item.ruby
 com.noorlandmc.NoorItems.item.stellar
+com.noorlandmc.NoorMenus
 com.noorlandmc.NoorNPCs
 com.noorlandmc.NoorNPCs.commands
 com.noorlandmc.NoorNPCs.listeners
@@ -20,3 +31,4 @@ com.noorlandmc.NoorNPCs.menus
 com.noorlandmc.NoorNPCs.model
 com.noorlandmc.NoorNPCs.service
 com.noorlandmc.NoorNPCs.util
+com.noorlandmc.NoorUtils
