@@ -38,6 +38,27 @@ jobs:
           repository: NoorlandStudios/NoorEntities
           path: NoorEntities
           token: ${{ secrets.PAT_TOKEN }}
+      
+      - name: Checkout NoorCore
+        uses: actions/checkout@v4
+        with:
+          repository: NoorlandStudios/NoorCore
+          path: NoorCore
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Checkout NoorUtils
+        uses: actions/checkout@v4
+        with:
+          repository: NoorlandStudios/NoorUtils
+          path: NoorUtils
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Checkout NoorMenus
+        uses: actions/checkout@v4
+        with:
+          repository: NoorlandStudios/NoorMenus
+          path: NoorMenus
+          token: ${{ secrets.PAT_TOKEN }}
 
       - name: Install all projects to local Maven repo
         run: |
@@ -53,10 +74,22 @@ jobs:
           echo "Building NoorNPCs..."
           mvn -f NoorNPCs/pom.xml clean install -DskipTests -e
 
+          # 4. Build NoorCore
+          echo "Building NoorCore..."
+          mvn -f NoorCore/pom.xml clean install -DskipTests -e
+
+          # 5. Build NoorUtils
+          echo "Building NoorUtils..."
+          mvn -f NoorUtils/pom.xml clean install -DskipTests -e
+
+          # 6. Build NoorMenus
+          echo "Building NoorMenus..."
+          mvn -f NoorMenus/pom.xml clean install -DskipTests -e
+
       - name: Collect source files and build classpath
         run: |
           # Gather all .java source files across the three projects
-          find NoorNPCs/src/main/java NoorItems/src/main/java NoorEntities/src/main/java \
+          find NoorNPCs/src/main/java NoorItems/src/main/java NoorEntities/src/main/java NoorCore/src/main/java NoorUtils/src/main/java NoorMenus/src/main/java \
             -name "*.java" > sources.txt
 
           echo "Found $(wc -l < sources.txt) source files"
@@ -79,6 +112,9 @@ jobs:
               <module>NoorNPCs</module>
               <module>NoorItems</module>
               <module>NoorEntities</module>
+              <module>NoorCore</module>
+              <module>NoorUtils</module>
+              <module>NoorMenus</module>
             </modules>
           </project>
           EOF
@@ -92,11 +128,14 @@ jobs:
           CP_ITEMS=$(mvn -f NoorItems/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
           CP_NPCS=$(mvn -f NoorNPCs/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
           CP_ENTS=$(mvn -f NoorEntities/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
+          CP_CORE=$(mvn -f NoorCore/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
+          CP_UTIL=$(mvn -f NoorUtils/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
+          CP_MENU=$(mvn -f NoorMenus/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
           
-          FULL_CP="$CP_ITEMS:$CP_NPCS:$CP_ENTS"
+          FULL_CP="$CP_ITEMS:$CP_NPCS:$CP_ENTS:$CP_CORE:$CP_UTIL:$CP_MENU"
           
           echo "Locating source files..."
-          find NoorNPCs/src/main/java NoorItems/src/main/java NoorEntities/src/main/java -name "*.java" > sources.txt
+          find NoorNPCs/src/main/java NoorItems/src/main/java NoorEntities/src/main/java NoorCore/src/main/java NoorUtils/src/main/java NoorMenus/src/main/java -name "*.java" > sources.txt
           
           echo "Generating Javadocs..."
           javadoc \
