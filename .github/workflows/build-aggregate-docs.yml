@@ -39,12 +39,20 @@ jobs:
           path: NoorEntities
           token: ${{ secrets.PAT_TOKEN }}
       
-      - name: Checkout NoorCore
+      - name: Checkout NoorCore (main)
         uses: actions/checkout@v4
         with:
           repository: NoorlandStudios/NoorCore
           path: NoorCore
           token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Checkout NoorCore (core branch)
+        uses: actions/checkout@v4
+        with:
+          repository: NoorlandStudios/NoorCore
+          path: NoorCore-core
+          token: ${{ secrets.PAT_TOKEN }}
+          ref: core
 
       - name: Checkout NoorUtils
         uses: actions/checkout@v4
@@ -74,9 +82,13 @@ jobs:
           echo "Building NoorNPCs..."
           mvn -f NoorNPCs/pom.xml clean install -DskipTests -e
 
-          # 4. Build NoorCore
-          echo "Building NoorCore..."
+          # 4. Build NoorCore (main)
+          echo "Building NoorCore (main)..."
           mvn -f NoorCore/pom.xml clean install -DskipTests -e
+
+          # 4.5. Build NoorCore (core branch)
+          echo "Building NoorCore (core)..."
+          mvn -f NoorCore-core/pom.xml clean install -DskipTests -e
 
           # 5. Build NoorUtils
           echo "Building NoorUtils..."
@@ -89,7 +101,9 @@ jobs:
       - name: Collect source files and build classpath
         run: |
           # Gather all .java source files across the three projects
-          find NoorNPCs/src/main/java NoorItems/src/main/java NoorEntities/src/main/java NoorCore/src/main/java NoorUtils/src/main/java NoorMenus/src/main/java \
+          find NoorNPCs/src/main/java NoorItems/src/main/java NoorEntities/src/main/java \
+            NoorCore/src/main/java NoorCore-core/src/main/java \
+            NoorUtils/src/main/java NoorMenus/src/main/java \
             -name "*.java" > sources.txt
 
           echo "Found $(wc -l < sources.txt) source files"
@@ -113,6 +127,7 @@ jobs:
               <module>NoorItems</module>
               <module>NoorEntities</module>
               <module>NoorCore</module>
+              <module>NoorCore-core</module>
               <module>NoorUtils</module>
               <module>NoorMenus</module>
             </modules>
@@ -129,10 +144,11 @@ jobs:
           CP_NPCS=$(mvn -f NoorNPCs/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
           CP_ENTS=$(mvn -f NoorEntities/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
           CP_CORE=$(mvn -f NoorCore/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
+          CP_CORE2=$(mvn -f NoorCore-core/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
           CP_UTIL=$(mvn -f NoorUtils/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
           CP_MENU=$(mvn -f NoorMenus/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
           
-          FULL_CP="$CP_ITEMS:$CP_NPCS:$CP_ENTS:$CP_CORE:$CP_UTIL:$CP_MENU"
+          FULL_CP="$CP_ITEMS:$CP_NPCS:$CP_ENTS:$CP_CORE:$CP_CORE2:$CP_UTIL:$CP_MENU"
           
           echo "Locating source files..."
           find NoorNPCs/src/main/java NoorItems/src/main/java NoorEntities/src/main/java NoorCore/src/main/java NoorUtils/src/main/java NoorMenus/src/main/java -name "*.java" > sources.txt
