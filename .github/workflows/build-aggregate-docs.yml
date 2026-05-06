@@ -122,7 +122,7 @@ jobs:
             fi
           }
 
-          MODULES=(NoorItems NoorEntities NoorNPCs NoorCore NoorUtils NoorMenus)
+          MODULES=(NoorCore NoorItems NoorEntities NoorNPCs NoorUtils NoorMenus)
           FULL_CP=""
           FAILED=()
 
