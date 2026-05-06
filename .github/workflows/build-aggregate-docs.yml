@@ -65,36 +65,47 @@ jobs:
 
       - name: Install all projects and collect classpaths
         run: |
-          # Shell function: install a module and echo its runtime classpath to stdout.
-          # Works with Maven (pom.xml) or Gradle (build.gradle / build.gradle.kts).
+          # Gradle init script injected at runtime — no build file modification needed.
+          # Applies maven-publish and adds printRuntimeClasspath to every project.
+          cat > /tmp/javadoc-init.gradle << 'EOF'
+          allprojects {
+            afterEvaluate {
+              if (!plugins.hasPlugin('maven-publish')) {
+                apply plugin: 'maven-publish'
+                publishing {
+                  publications {
+                    maven(MavenPublication) {
+                      from components.findByName('java') ?: components.findByName('javaPlatform')
+                    }
+                  }
+                }
+              }
+              if (!tasks.findByName('printRuntimeClasspath')) {
+                tasks.register('printRuntimeClasspath') {
+                  doLast {
+                    def cp = configurations.findByName('runtimeClasspath')
+                    if (cp) println cp.asPath
+                  }
+                }
+              }
+            }
+          }
+          EOF
+
           get_classpath() {
             local dir="$1"
-            
+
             if [ -f "$dir/pom.xml" ]; then
               echo "[$dir] Detected Maven" >&2
-              mvn -f "$dir/pom.xml" clean install -DskipTests -q
+              mvn -f "$dir/pom.xml" clean install -DskipTests -q || return 1
               mvn -f "$dir/pom.xml" dependency:build-classpath \
                 -Dmdep.outputFile=/dev/stdout -q 2>/dev/null
 
             elif [ -f "$dir/build.gradle" ] || [ -f "$dir/build.gradle.kts" ]; then
               echo "[$dir] Detected Gradle" >&2
-
-              # Inject a task that prints the runtime classpath, but only if it
-              # doesn't already exist (avoids conflicts with projects that define it).
-              if ! grep -q "printRuntimeClasspath" "$dir/build.gradle" 2>/dev/null \
-                && ! grep -q "printRuntimeClasspath" "$dir/build.gradle.kts" 2>/dev/null; then
-                cat >> "$dir/build.gradle" 2>/dev/null || cat >> "$dir/build.gradle.kts" << 'GRADLE_TASK'
-          tasks.register("printRuntimeClasspath") {
-            doLast {
-              println(configurations.runtimeClasspath.get().asPath)
-            }
-          }
-          GRADLE_TASK
-              fi
-
-              (cd "$dir" && ./gradlew publishToMavenLocal -q)
-              (cd "$dir" && ./gradlew printRuntimeClasspath -q \
-                | grep -v '^>' | grep -v '^\[' | tail -1)
+              (cd "$dir" && ./gradlew publishToMavenLocal -I /tmp/javadoc-init.gradle -q) || return 1
+              (cd "$dir" && ./gradlew printRuntimeClasspath -I /tmp/javadoc-init.gradle -q \
+                2>/dev/null | grep -v '^>' | grep -v '^\[' | grep ':' | tail -1)
 
             else
               echo "[$dir] WARNING: No recognised build file found, skipping." >&2
@@ -103,14 +114,22 @@ jobs:
 
           MODULES=(NoorItems NoorEntities NoorNPCs NoorCore NoorUtils NoorMenus)
           FULL_CP=""
+          FAILED=()
 
           for MODULE in "${MODULES[@]}"; do
             echo "--- Processing $MODULE ---"
-            CP=$(get_classpath "$MODULE")
+            CP=$(get_classpath "$MODULE") || { FAILED+=("$MODULE"); continue; }
             if [ -n "$CP" ]; then
               FULL_CP="${FULL_CP:+$FULL_CP:}$CP"
+            else
+              echo "[$MODULE] WARNING: empty classpath, module may have no runtimeClasspath config" >&2
             fi
           done
+
+          if [ ${#FAILED[@]} -gt 0 ]; then
+            echo "ERROR: The following modules failed to build: ${FAILED[*]}" >&2
+            exit 1
+          fi
 
           echo "FULL_CP=$FULL_CP" >> $GITHUB_ENV
 
