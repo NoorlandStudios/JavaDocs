@@ -84,6 +84,13 @@ jobs:
               maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
             }
             afterEvaluate {
+              // Disable shadowJar - incompatible with Gradle 9.x, not needed for Javadoc
+              tasks.configureEach { task ->
+                if (task.class.name.contains('ShadowJar')) {
+                  task.enabled = false
+                }
+              }
+
               if (!plugins.hasPlugin('maven-publish')) {
                 apply plugin: 'maven-publish'
                 publishing {
