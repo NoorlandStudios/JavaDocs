@@ -67,6 +67,15 @@ jobs:
         run: |
           mkdir -p ~/.gradle/init.d
           cat > ~/.gradle/init.d/javadoc-init.gradle << 'EOF'
+          settingsEvaluated { settings ->
+            settings.pluginManagement {
+              repositories {
+                gradlePluginPortal()
+                maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
+              }
+            }
+          }
+
           allprojects {
             repositories {
               mavenLocal()
