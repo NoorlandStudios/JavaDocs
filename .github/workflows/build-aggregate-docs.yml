@@ -84,7 +84,6 @@ jobs:
               maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
             }
             afterEvaluate {
-              // Disable shadowJar - incompatible with Gradle 9.x, not needed for Javadoc
               tasks.configureEach { task ->
                 if (task.class.name.contains('ShadowJar')) {
                   task.enabled = false
@@ -133,7 +132,7 @@ jobs:
             fi
           }
 
-          MODULES=(NoorCore NoorItems NoorEntities NoorNPCs NoorUtils)
+          MODULES=(NoorCore NoorItems NoorEntities NoorNPCs NoorUtils NoorMenus)
           FULL_CP=""
           FAILED=()
 
@@ -143,7 +142,7 @@ jobs:
             if [ -n "$CP" ]; then
               FULL_CP="${FULL_CP:+$FULL_CP:}$CP"
             else
-              echo "[$MODULE] WARNING: empty classpath, module may have no runtimeClasspath config" >&2
+              echo "[$MODULE] WARNING: empty classpath" >&2
             fi
           done
 
@@ -152,7 +151,9 @@ jobs:
             exit 1
           fi
 
-          echo "FULL_CP=$FULL_CP" >> $GITHUB_ENV
+          # Write classpath to a file instead of GITHUB_ENV to avoid length limits
+          echo "$FULL_CP" > /tmp/javadoc-classpath.txt
+          echo "Classpath written to /tmp/javadoc-classpath.txt ($(wc -c < /tmp/javadoc-classpath.txt) bytes)"
 
       - name: Collect source files
         run: |
@@ -161,12 +162,14 @@ jobs:
                NoorItems/src/main/java \
                NoorEntities/src/main/java \
                NoorUtils/src/main/java \
+               NoorMenus/src/main/java \
             -name "*.java" 2>/dev/null > sources.txt
 
           echo "Found $(wc -l < sources.txt) source files"
 
       - name: Generate Aggregated Javadocs
         run: |
+          FULL_CP=$(cat /tmp/javadoc-classpath.txt)
           mkdir -p docs
           javadoc \
             -J-Xmx2g \
