@@ -21,6 +21,13 @@ jobs:
       - name: Set up Gradle (for Gradle modules)
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Checkout NoorCore
+        uses: actions/checkout@v4
+        with:
+          repository: NoorlandStudios/NoorCore
+          path: NoorCore
+          token: ${{ secrets.PAT_TOKEN }}
+
       - name: Checkout NoorNPCs
         uses: actions/checkout@v4
         with:
@@ -40,13 +47,6 @@ jobs:
         with:
           repository: NoorlandStudios/NoorEntities
           path: NoorEntities
-          token: ${{ secrets.PAT_TOKEN }}
-
-      - name: Checkout NoorCore
-        uses: actions/checkout@v4
-        with:
-          repository: NoorlandStudios/NoorCore
-          path: NoorCore
           token: ${{ secrets.PAT_TOKEN }}
 
       - name: Checkout NoorUtils
@@ -112,7 +112,7 @@ jobs:
             fi
           }
 
-          MODULES=(NoorItems NoorEntities NoorNPCs NoorCore NoorUtils NoorMenus)
+          MODULES=(NoorCore NoorItems NoorEntities NoorNPCs NoorUtils NoorMenus)
           FULL_CP=""
           FAILED=()
 
@@ -135,10 +135,10 @@ jobs:
 
       - name: Collect source files
         run: |
-          find NoorNPCs/src/main/java \
+          find NoorCore/src/main/java \
+               NoorNPCs/src/main/java \
                NoorItems/src/main/java \
                NoorEntities/src/main/java \
-               NoorCore/src/main/java \
                NoorUtils/src/main/java \
                NoorMenus/src/main/java \
             -name "*.java" 2>/dev/null > sources.txt
