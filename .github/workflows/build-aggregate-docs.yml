@@ -170,12 +170,26 @@ jobs:
       - name: Generate Aggregated Javadocs
         run: |
           FULL_CP=$(cat /tmp/javadoc-classpath.txt)
+
+          # Fetch any known missing dependencies not captured by classpath collection
+          EXTRA_DEPS=""
+
+          # Jython (used by NoorItems ScriptEngine)
+          JYTHON_JAR="$HOME/.m2/repository/org/python/jython-standalone/2.7.4/jython-standalone-2.7.4.jar"
+          if [ ! -f "$JYTHON_JAR" ]; then
+            mvn dependency:get \
+              -Dartifact=org.python:jython-standalone:2.7.4 \
+              -Ddest="$(dirname $JYTHON_JAR)" \
+              -q
+          fi
+          EXTRA_DEPS="$EXTRA_DEPS:$JYTHON_JAR"
+
           mkdir -p docs
           javadoc \
             -J-Xmx2g \
             -d docs \
             -encoding UTF-8 \
-            -classpath "$FULL_CP" \
+            -classpath "$FULL_CP$EXTRA_DEPS" \
             -windowtitle "Noorland Aggregated Javadocs" \
             -doctitle "Noorland Aggregated Javadocs" \
             -Xdoclint:none \
