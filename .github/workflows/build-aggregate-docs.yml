@@ -133,7 +133,7 @@ jobs:
             fi
           }
 
-          MODULES=(NoorCore NoorItems NoorEntities NoorNPCs NoorUtils NoorMenus)
+          MODULES=(NoorCore NoorItems NoorEntities NoorNPCs NoorUtils)
           FULL_CP=""
           FAILED=()
 
@@ -161,7 +161,6 @@ jobs:
                NoorItems/src/main/java \
                NoorEntities/src/main/java \
                NoorUtils/src/main/java \
-               NoorMenus/src/main/java \
             -name "*.java" 2>/dev/null > sources.txt
 
           echo "Found $(wc -l < sources.txt) source files"
