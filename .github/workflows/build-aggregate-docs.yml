@@ -65,23 +65,20 @@ jobs:
 
       - name: Install all projects and collect classpaths
         run: |
-          # Gradle init script injected at runtime — no build file modification needed.
-          # Applies maven-publish and adds printRuntimeClasspath to every project.
-          cat > /tmp/javadoc-init.gradle << 'EOF'
+          mkdir -p ~/.gradle/init.d
+          cat > ~/.gradle/init.d/javadoc-init.gradle << 'EOF'
           pluginManagement {
             repositories {
               gradlePluginPortal()
               maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
             }
           }
-
           allprojects {
             repositories {
               mavenLocal()
               mavenCentral()
               maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
             }
-
             afterEvaluate {
               if (!plugins.hasPlugin('maven-publish')) {
                 apply plugin: 'maven-publish'
@@ -116,8 +113,8 @@ jobs:
 
             elif [ -f "$dir/build.gradle" ] || [ -f "$dir/build.gradle.kts" ]; then
               echo "[$dir] Detected Gradle" >&2
-              (cd "$dir" && ./gradlew publishToMavenLocal -I /tmp/javadoc-init.gradle -q) || return 1
-              (cd "$dir" && ./gradlew printRuntimeClasspath -I /tmp/javadoc-init.gradle -q \
+              (cd "$dir" && ./gradlew publishToMavenLocal -q) || return 1
+              (cd "$dir" && ./gradlew printRuntimeClasspath -q \
                 2>/dev/null | grep -v '^>' | grep -v '^\[' | grep ':' | tail -1)
 
             else
@@ -125,7 +122,7 @@ jobs:
             fi
           }
 
-          MODULES=(NoorCore NoorItems NoorEntities NoorNPCs NoorUtils NoorMenus)
+          MODULES=(NoorItems NoorEntities NoorNPCs NoorCore NoorUtils NoorMenus)
           FULL_CP=""
           FAILED=()
 
