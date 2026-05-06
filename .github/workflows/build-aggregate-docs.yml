@@ -68,7 +68,20 @@ jobs:
           # Gradle init script injected at runtime — no build file modification needed.
           # Applies maven-publish and adds printRuntimeClasspath to every project.
           cat > /tmp/javadoc-init.gradle << 'EOF'
+          pluginManagement {
+            repositories {
+              gradlePluginPortal()
+              maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
+            }
+          }
+
           allprojects {
+            repositories {
+              mavenLocal()
+              mavenCentral()
+              maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
+            }
+
             afterEvaluate {
               if (!plugins.hasPlugin('maven-publish')) {
                 apply plugin: 'maven-publish'
