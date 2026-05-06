@@ -18,6 +18,9 @@ jobs:
           distribution: temurin
           java-version: 21
 
+      - name: Set up Gradle (for Gradle modules)
+        uses: gradle/actions/setup-gradle@v3
+
       - name: Checkout NoorNPCs
         uses: actions/checkout@v4
         with:
@@ -38,7 +41,7 @@ jobs:
           repository: NoorlandStudios/NoorEntities
           path: NoorEntities
           token: ${{ secrets.PAT_TOKEN }}
-      
+
       - name: Checkout NoorCore
         uses: actions/checkout@v4
         with:
@@ -60,84 +63,72 @@ jobs:
           path: NoorMenus
           token: ${{ secrets.PAT_TOKEN }}
 
-      - name: Install all projects to local Maven repo
+      - name: Install all projects and collect classpaths
         run: |
-          # 1. Build NoorItems first (with -e to see errors if it fails)
-          echo "Building NoorItems..."
-          mvn -f NoorItems/pom.xml clean install -DskipTests -e
-          
-          # 2. Build NoorEntities (which depends on NoorItems)
-          echo "Building NoorEntities..."
-          mvn -f NoorEntities/pom.xml clean install -DskipTests -e
-          
-          # 3. Build NoorNPCs
-          echo "Building NoorNPCs..."
-          mvn -f NoorNPCs/pom.xml clean install -DskipTests -e
+          # Shell function: install a module and echo its runtime classpath to stdout.
+          # Works with Maven (pom.xml) or Gradle (build.gradle / build.gradle.kts).
+          get_classpath() {
+            local dir="$1"
+            
+            if [ -f "$dir/pom.xml" ]; then
+              echo "[$dir] Detected Maven" >&2
+              mvn -f "$dir/pom.xml" clean install -DskipTests -q
+              mvn -f "$dir/pom.xml" dependency:build-classpath \
+                -Dmdep.outputFile=/dev/stdout -q 2>/dev/null
 
-          # 4. Build NoorCore
-          echo "Building NoorCore..."
-          mvn -f NoorCore/pom.xml clean install -DskipTests -e
+            elif [ -f "$dir/build.gradle" ] || [ -f "$dir/build.gradle.kts" ]; then
+              echo "[$dir] Detected Gradle" >&2
 
-          # 5. Build NoorUtils
-          echo "Building NoorUtils..."
-          mvn -f NoorUtils/pom.xml clean install -DskipTests -e
+              # Inject a task that prints the runtime classpath, but only if it
+              # doesn't already exist (avoids conflicts with projects that define it).
+              if ! grep -q "printRuntimeClasspath" "$dir/build.gradle" 2>/dev/null \
+                && ! grep -q "printRuntimeClasspath" "$dir/build.gradle.kts" 2>/dev/null; then
+                cat >> "$dir/build.gradle" 2>/dev/null || cat >> "$dir/build.gradle.kts" << 'GRADLE_TASK'
+          tasks.register("printRuntimeClasspath") {
+            doLast {
+              println(configurations.runtimeClasspath.get().asPath)
+            }
+          }
+          GRADLE_TASK
+              fi
 
-          # 6. Build NoorMenus
-          echo "Building NoorMenus..."
-          mvn -f NoorMenus/pom.xml clean install -DskipTests -e
+              (cd "$dir" && ./gradlew publishToMavenLocal -q)
+              (cd "$dir" && ./gradlew printRuntimeClasspath -q \
+                | grep -v '^>' | grep -v '^\[' | tail -1)
 
-      - name: Collect source files and build classpath
+            else
+              echo "[$dir] WARNING: No recognised build file found, skipping." >&2
+            fi
+          }
+
+          MODULES=(NoorItems NoorEntities NoorNPCs NoorCore NoorUtils NoorMenus)
+          FULL_CP=""
+
+          for MODULE in "${MODULES[@]}"; do
+            echo "--- Processing $MODULE ---"
+            CP=$(get_classpath "$MODULE")
+            if [ -n "$CP" ]; then
+              FULL_CP="${FULL_CP:+$FULL_CP:}$CP"
+            fi
+          done
+
+          echo "FULL_CP=$FULL_CP" >> $GITHUB_ENV
+
+      - name: Collect source files
         run: |
-          # Gather all .java source files across the three projects
-          find NoorNPCs/src/main/java NoorItems/src/main/java NoorEntities/src/main/java NoorCore/src/main/java NoorUtils/src/main/java NoorMenus/src/main/java \
-            -name "*.java" > sources.txt
+          find NoorNPCs/src/main/java \
+               NoorItems/src/main/java \
+               NoorEntities/src/main/java \
+               NoorCore/src/main/java \
+               NoorUtils/src/main/java \
+               NoorMenus/src/main/java \
+            -name "*.java" 2>/dev/null > sources.txt
 
           echo "Found $(wc -l < sources.txt) source files"
 
-          # Build a classpath from all local Maven jars so javadoc can resolve types
-          CLASSPATH=$(mvn -f NoorItems/pom.xml dependency:build-classpath \
-            -Dmdep.outputFile=/dev/stdout -q 2>/dev/null)
-          echo "JAVADOC_CP=$CLASSPATH" >> $GITHUB_ENV
-
-      - name: Create Temporary Parent POM
-        run: |
-          cat <<EOF > pom.xml
-          <project xmlns="http://maven.apache.org/POM/4.0.0">
-            <modelVersion>4.0.0</modelVersion>
-            <groupId>com.noorland</groupId>
-            <artifactId>docs-aggregator</artifactId>
-            <version>1.0</version>
-            <packaging>pom</packaging>
-            <modules>
-              <module>NoorNPCs</module>
-              <module>NoorItems</module>
-              <module>NoorEntities</module>
-              <module>NoorCore</module>
-              <module>NoorUtils</module>
-              <module>NoorMenus</module>
-            </modules>
-          </project>
-          EOF
-        
       - name: Generate Aggregated Javadocs
         run: |
           mkdir -p docs
-          
-          echo "Building combined classpath..."
-          # Now that they are installed, build-classpath should succeed
-          CP_ITEMS=$(mvn -f NoorItems/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
-          CP_NPCS=$(mvn -f NoorNPCs/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
-          CP_ENTS=$(mvn -f NoorEntities/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
-          CP_CORE=$(mvn -f NoorCore/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
-          CP_UTIL=$(mvn -f NoorUtils/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
-          CP_MENU=$(mvn -f NoorMenus/pom.xml dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)
-          
-          FULL_CP="$CP_ITEMS:$CP_NPCS:$CP_ENTS:$CP_CORE:$CP_UTIL:$CP_MENU"
-          
-          echo "Locating source files..."
-          find NoorNPCs/src/main/java NoorItems/src/main/java NoorEntities/src/main/java NoorCore/src/main/java NoorUtils/src/main/java NoorMenus/src/main/java -name "*.java" > sources.txt
-          
-          echo "Generating Javadocs..."
           javadoc \
             -J-Xmx2g \
             -d docs \
